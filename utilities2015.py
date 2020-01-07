@@ -63,6 +63,9 @@ def create_if_not_exists(path):
 
     return path
 
+def create_parent_dir_if_not_exists(fp):
+    create_if_not_exists(os.path.dirname(fp))
+
 def execute_command(cmd, stdout=None, stderr=None):
     sys.stderr.write(cmd + '\n')
 

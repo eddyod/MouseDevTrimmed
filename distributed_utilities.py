@@ -8,6 +8,7 @@ import paramiko
 from utilities2015 import execute_command, shell_escape, create_if_not_exists
 from metadata import REPO_DIR, ENABLE_DOWNLOAD_S3, ENABLE_UPLOAD_S3, HOST_ID, S3_DATA_BUCKET, S3_RAWDATA_BUCKET, ROOT_DIR
 
+
 default_root = dict(localhost='/home/yuncong',
                     # workstation='/media/yuncong/BstemAtlasData',
                     workstation='/data',
@@ -273,34 +274,40 @@ def run_distributed5(command, argument_type='single', kwargs_list=None, jobs_per
 
     if use_aws:
         execute_command('rm -f /home/ubuntu/stderr_*; rm -f /home/ubuntu/stdout_*')
+        print('Using aws')
     else:
         execute_command('rm -f %s; rm -f %s' % (os.path.join(ROOT_DIR, 'mousebrainatlas_tmp', 'stderr_*'), os.path.join(ROOT_DIR, 'mousebrainatlas_tmp', 'stdout_*')))
+        print('Not Using aws')
 
     if local_only:
+        print('Local only')
         sys.stderr.write("Run locally.\n")
-
         n_hosts = 1
-
     else:
-
+        print('Not Local only')
         # Use a fixed node list rather than letting SGE automatically determine the node list.
         # This allows for control over which input items go to which node.
         if node_list is None:
             node_list = get_node_list()
+            print('Node list is None')
 
         n_hosts = len(node_list)
         sys.stderr.write('%d nodes available.\n' % (n_hosts))
         if n_hosts == 0:
+            print('n_hosts = 0, returning')
             return
 
     if kwargs_list is None:
+        print('kwargs list is None')
         kwargs_list = {'dummy': [None] * n_hosts}
 
     if isinstance(kwargs_list, dict):
+        print('kwargs is a dict')
         keys, vals = zip(*kwargs_list.items())
         kwargs_list_as_list = [dict(zip(keys, t)) for t in zip(*vals)]
         kwargs_list_as_dict = kwargs_list
     else:
+        print('kwargs is Not a dict')
         kwargs_list_as_list = kwargs_list
         keys = kwargs_list[0].keys()
         vals = [t.values() for t in kwargs_list]
@@ -318,22 +325,26 @@ def run_distributed5(command, argument_type='single', kwargs_list=None, jobs_per
         for j, (fj, lj) in enumerate(first_last_tuples_distribute_over(fi, li, jobs_per_node)):
             if argument_type == 'list':
                 line = command % {'kwargs_str': json.dumps(kwargs_list_as_list[fj:lj + 1])}
+                print('1 list',line)
             elif argument_type == 'list2':
+                print('2 list2',line)
                 line = command % {key: json.dumps(vals[fj:lj + 1]) for key, vals in kwargs_list_as_dict.items()}
             elif argument_type == 'single':
                 # It is important to wrap command_templates and kwargs_list_str in apostrphes.
                 # That lets bash treat them as single strings.
                 # Reference: http://stackoverflow.com/questions/15783701/which-characters-need-to-be-escaped-in-bash-how-do-we-know-it
                 line = "%(generic_launcher_path)s %(command_template)s %(kwargs_list_str)s" % \
-                {'generic_launcher_path': os.path.join( REPO_DIR, 'utilities', 'sequential_dispatcher.py'),
+                {'generic_launcher_path': os.path.join( os.getcwd(), 'sequential_dispatcher.py'),
                 'command_template': shell_escape(command),
                 'kwargs_list_str': shell_escape(json.dumps(kwargs_list_as_list[fj:lj + 1]))
                 }
+                # print('3 single',line)
 
             temp_f.write(line + ' &\n')
 
         temp_f.write('wait')
         temp_f.close()
+        print(temp_script)
         os.chmod(temp_script, 0o777)
 
         # Explicitly specify the node to submit jobs.
@@ -348,10 +359,12 @@ def run_distributed5(command, argument_type='single', kwargs_list=None, jobs_per
             stderr_template = os.path.join(ROOT_DIR, 'mousebrainatlas_tmp', 'stderr_%d.log')
         
         if local_only:
+            print('2 local only')
             stdout_f = open(stdout_template % node_i, "w")
             stderr_f = open(stderr_template % node_i, "w")
             call(temp_script, shell=True, stdout=stdout_f, stderr=stderr_f)
         else:
+            print('2 Not local only')
             call('qsub -V -q all.q@%(node)s -o %(stdout_log)s -e %(stderr_log)s %(script)s' % \
              dict(node=node_list[node_i], script=temp_script,
                   stdout_log=stdout_template % node_i, stderr_log=stderr_template % node_i),

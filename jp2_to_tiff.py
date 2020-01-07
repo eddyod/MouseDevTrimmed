@@ -53,7 +53,7 @@ create_if_not_exists(DataManager.get_image_dir_v2(stack=stack, prep_id=None, res
 
 # The KDU program automatically uses all cores, so we just set jobs_per_node = 1.
 run_distributed('export LD_LIBRARY_PATH=%(kdu_dir)s:$LD_LIBRARY_PATH; %(kdu_bin)s -i \"%%(in_fp)s\" -o \"%%(out_fp)s\"' % \
-                {'kdu_bin': KDU_EXPAND_BIN, 'kdu_dir': os.path.dirname(KDU_EXPAND_BIN)},
+                {'kdu_bin': KDU_EXPAND_BIN, 'kdu_dir': os.path.dirname('/usr/local/lib')},
                 kwargs_list={'in_fp': [imageName_to_filepath_mapping[(None, 'raw')] % img_name
                                        for img_name in list(image_names_all_data_dirs_flattened)], 
                              'out_fp': [DataManager.get_image_filepath_v2(stack=stack, prep_id=None, 
