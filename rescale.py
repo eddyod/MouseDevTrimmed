@@ -3,10 +3,6 @@ import matplotlib.pyplot as plt
 from utilities2015 import create_parent_dir_if_not_exists
 from metadata import load_ini
 from data_manager import DataManager
-
-
-
-
 import argparse
 
 parser = argparse.ArgumentParser(
